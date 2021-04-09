@@ -1,5 +1,4 @@
-# FROM pytorch/pytorch:1.2-cuda10.0-cudnn7-devel
-FROM nvidia/cuda:10.2-cudnn8-devel-ubuntu18.04
+FROM pytorch/pytorch:1.7.0-cuda11.0-cudnn8-devel
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -20,16 +19,8 @@ RUN apt update \
                          libgoogle-glog-dev \
                          tmux \
                          imagemagick \
-                         tree
-
-ENV PYVER 3.8
-WORKDIR /opt
-RUN wget https://repo.continuum.io/miniconda/Miniconda3-4.7.12.1-Linux-x86_64.sh
-RUN bash Miniconda*.sh -b -p /opt/conda/ \
-    && rm /opt/Miniconda*.sh
-ENV PATH /opt/conda/bin:$PATH
-RUN conda install --yes python=${PYVER} pip
-RUN conda clean --yes --all
+                         tree \
+                         sudo
 
 RUN pip install numpy \
                 matplotlib \
@@ -52,7 +43,6 @@ RUN pip install crc32c \
                 opencv-contrib-python \
                 torch \
                 torchvision \
-                tensorboardX \
                 scikit-image \
                 scikit-learn
 
@@ -60,6 +50,27 @@ RUN pip install icecream \
                 loguru \
                 mlflow \
                 hydra
+
+# setting USER group number
+ENV USER developer
+RUN echo "${USER} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers.d/${USER}
+RUN chmod u+s /usr/sbin/useradd \
+   && chmod u+s /usr/sbin/groupadd
+ENV HOME /home/${USER}
+ENV SHELL /bin/bash
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US:en
+ENV LC_ALL en_US.UTF-8
+ENV TERM xterm-256color
+RUN echo 'Defaults visiblepw' >> /etc/sudoers
+RUN echo 'USER ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+USER ${USER}
+
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["bash"]
+
+WORKDIR /workspace
 
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
